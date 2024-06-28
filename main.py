@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from nltk.tokenize import RegexpTokenizer
 from tensorflow.keras.layers import InputLayer, LSTM, Activation, Dense  # type: ignore
-from tensorflow.keras.models import Sequential # type: ignore
+from tensorflow.keras.models import Sequential, load_model # type: ignore
 from tensorflow.keras.optimizers import RMSprop  # type: ignore
 
 real_data_path = "data/real.csv"
@@ -46,15 +46,38 @@ for i, words in enumerate(input_words):
         X[i, j, indexed_tokens[word]] = 1
     y[i, indexed_tokens[predicted_words[i]]] = 1
 
-model = Sequential()
-model.add(InputLayer(shape=(n_words, len(unique_tokens))))
-model.add(LSTM(128, return_sequences=True))
-model.add(LSTM(128))
-model.add(Dense(len(unique_tokens)))
-model.add(Activation("softmax"))
+# model = Sequential()
+# model.add(InputLayer(shape=(n_words, len(unique_tokens))))
+# model.add(LSTM(128, return_sequences=True))
+# model.add(LSTM(128))
+# model.add(Dense(len(unique_tokens)))
+# model.add(Activation("softmax"))
+#
+# optimizer = RMSprop(learning_rate=0.01)
+# model.compile(loss="categorical_crossentropy", optimizer=optimizer, metrics=["accuracy"])
+# model.fit(X, y, batch_size=128, epochs=30, shuffle=True)
+#
+# model.save("pre_trained_model.keras")
 
-optimizer = RMSprop(learning_rate=0.01)
-model.compile(loss="categorical_crossentropy", optimizer=optimizer, metrics=["accuracy"])
-model.fit(X, y, batch_size=128, epochs=30, shuffle=True)
+model = load_model("pre_trained_model.keras")
 
-model.save("pre_trained_model.keras")
+
+def generate_predictions(input_text: str, n_predict=5):
+    input_text = input_text.lower()
+    X = np.zeros((1, n_words, len(unique_tokens)))
+
+    for i, word in enumerate(input_text.split()):
+        try:
+            X[0, i, indexed_tokens[word]] = 1
+        except KeyError:
+            X[0, i, 0] = 1
+
+    predictions = model.predict(X)[0]
+
+    return np.argpartition(predictions, -n_predict)[-n_predict:]
+
+
+results = generate_predictions("As elections approach candidates are focusing their campaigns on more", 10)
+
+for idx in results:
+    print(unique_tokens[idx])
