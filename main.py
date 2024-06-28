@@ -1,6 +1,5 @@
 import pickle
 import random
-from typing import List
 
 import numpy as np
 import pandas as pd
@@ -19,7 +18,7 @@ def load_data(real_data_path: str, fake_data_path: str):
     combined_data = pd.concat([real_data, fake_data], ignore_index=True)
     combined_data = " ".join(list(combined_data.text.values)).lower()
 
-    return combined_data
+    return combined_data[:1000000]
 
 
 def tokenize(data: str):
@@ -31,3 +30,21 @@ def tokenize(data: str):
 
 data = load_data(real_data_path, fake_data_path)
 tokens = tokenize(data)
+unique_tokens = np.unique(tokens)
+indexed_tokens =  {token: idx for idx, token in enumerate(unique_tokens)}
+
+n_words = 10
+input_words = []
+predicted_words = []
+
+for i in range(len(tokens) - n_words):
+    input_words.append(tokens[i:i + n_words])
+    predicted_words.append(tokens[i + n_words])
+
+X = np.zeros((len(input_words), n_words, len(unique_tokens)), dtype=bool)
+y = np.zeros((len(predicted_words), len(unique_tokens)), dtype=bool)
+
+for i, words in enumerate(input_words):
+    for j, word in (enumerate(words)):
+        X[i, j, indexed_tokens[word]] = 1
+    y[i, indexed_tokens[predicted_words[i]]] = 1
